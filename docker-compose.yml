@@ -1,0 +1,13 @@
+version: '3.8'
+services:
+ react-app:
+   build:
+     context: .
+     dockerfile: Dockerfile
+   volumes:
+     - ./:/src
+   tty: true
+   ports:
+     - "5173:5173"
+     - "4173:4173"
+   stdin_open: true

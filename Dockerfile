@@ -1,0 +1,5 @@
+FROM node:alpine
+
+env CHOKIDAR_USEPOLLING=true
+WORKDIR /src
+EXPOSE 4173 5173
