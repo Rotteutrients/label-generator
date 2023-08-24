@@ -1,4 +1,4 @@
-import { useState, useId, useRef } from "react";
+import { useState, useId, useRef, useEffect } from "react";
 import "./App.css";
 import FontStyleEmbed from "./FontStyleEmbed";
 import IndexLabel from "./IndexLabel";
@@ -8,6 +8,7 @@ import SaveAsIcon from "@mui/icons-material/SaveAs";
 import SettingsIcon from "@mui/icons-material/Settings";
 import DownloadIcon from "@mui/icons-material/Download";
 import UploadIcon from "@mui/icons-material/Upload";
+import LoopIcon from "@mui/icons-material/Loop";
 
 import {
   Grid,
@@ -56,6 +57,8 @@ const styleRight = {
   alignItems: "center",
   justifyContent: "center",
 };
+
+const makers = [{ name: "KATO" }, { name: "TOMIX" }];
 
 const fontAllowed = [
   {
@@ -223,7 +226,7 @@ async function importSettings(
                 if (fontInfo.length > 1) {
                   fontAllowed[idx].weight.map((wght, i) => {
                     if (wght == fontInfo[1]) {
-                      handleWeightChange(i);
+                      handleWeightChange(i, idx);
                     }
                   });
                 }
@@ -237,7 +240,7 @@ async function importSettings(
   return [];
 }
 
-function IndexImage(props) {
+function IndexImageKato(props) {
   // 128dot = 10.8mm
   const width = 2480;
   const height = 3508;
@@ -346,6 +349,229 @@ function IndexImage(props) {
           <g transform={`rotate(270) translate(-${labelY}, ${padding})`}>
             {elmSub}
           </g>
+        </svg>
+      </Container>
+    </>
+  );
+}
+
+function IndexImageTomix(props) {
+  // 128dot = 10.8mm
+  const width = 3508;
+  const height = 2480;
+
+  const merginWidth = 46;
+  const merginHeight = 390;
+  const merginTitleLeft = 240;
+
+  const frontWidth = 2398;
+  const spineWidth = 366;
+  const remarksWidth = width - merginWidth * 2 - frontWidth - spineWidth;
+  const titleWidth = 830;
+  const titleHight = 360;
+  const skyHeight = 342;
+
+  const band = 2;
+  const padding = 24;
+
+  const bgtext = 64;
+  const bgcolor = "#ddd";
+
+  const svgId = useId();
+  let rectRef = useRef(null);
+  let spineRef = useRef(null);
+  let titleRef = useRef(null);
+  const [scaleX, setScaleX] = useState(1);
+  const [scaleY, setScaleY] = useState(1);
+
+  const getFontFamily = (font) => {
+    return font.split(":wght@")[0];
+  };
+  const getFontWeight = (font) => {
+    const fontInfo = font.split(":wght@");
+    return fontInfo.length > 1 ? fontInfo[1] : "";
+  };
+
+  const styleG1 = {
+    "stop-color": bgcolor,
+    "stop-opacity": "0.3",
+  };
+  const styleG2 = {
+    "stop-color": bgcolor,
+    "stop-opacity": "0",
+  };
+  const bgstyle = {
+    fill: "url(#three_opacity_stops)",
+  };
+
+  useEffect(() => {
+    if (spineRef.current) {
+      const rectW = rectRef.current.getBoundingClientRect()["height"];
+      const spineW = spineRef.current.getBoundingClientRect()["width"] + 1;
+      const titleW = titleRef.current.getBoundingClientRect()["width"] + 1;
+      setScaleX(
+        ((titleWidth / height) * rectW) / titleW > 1
+          ? 1
+          : ((titleWidth / height) * rectW) / titleW
+      );
+      setScaleY(
+        (((height - merginHeight * 2) / height) * rectW) / spineW > 1
+          ? 1
+          : (((height - merginHeight * 2) / height) * rectW) / spineW
+      );
+    }
+  }, [props.labels]);
+
+  return (
+    <>
+      <h2>Download</h2>
+      <Button
+        variant="contained"
+        startIcon={<SaveAsIcon />}
+        onClick={() => convertSvgToPng(svgId)}
+      >
+        Download PNG
+      </Button>
+      <Box sx={{ m: 1 }} />
+      <Button
+        variant="contained"
+        startIcon={<SaveAsIcon />}
+        onClick={() => convertSvg(svgId)}
+      >
+        Download SVG
+      </Button>
+      <h3>Preview</h3>
+      <Container sx={styleFill}>
+        <svg
+          id={svgId}
+          width={width}
+          height={height}
+          viewBox={`0 ${height / 7} ${width} ${height}`}
+          style={styleFill}
+        >
+          <FontStyleEmbed
+            fontFamily={props.font}
+            string={props.labels
+              .map((data) => "" + data.title + data.spine + data.desc)
+              .join("")}
+          />
+          <defs>
+            <linearGradient
+              id="three_opacity_stops"
+              gradientTransform="rotate(90)"
+            >
+              <stop offset="0%" style={styleG1} />
+              <stop offset="100%" style={styleG2} />
+            </linearGradient>
+          </defs>
+          <rect width={width} height={height} fill={bgcolor} />
+          <rect
+            x={merginWidth}
+            y={merginHeight}
+            width={width - merginWidth * 2}
+            height={height - merginHeight * 2}
+            fill={props.color}
+          />
+          <rect
+            x={merginWidth + padding}
+            y={merginHeight + padding}
+            width={remarksWidth - padding * 2 - bgtext}
+            height={height - (merginHeight + padding) * 2}
+            rx={padding * 2}
+            ry={padding * 2}
+            fill={bgcolor}
+            ref={rectRef}
+          />
+          <g
+            transform={`translate(${
+              merginWidth + remarksWidth - bgtext - padding / 2
+            }, ${merginHeight + padding + bgtext}) rotate(90)`}
+          >
+            <text fill={bgcolor} fontSize={bgtext} className="fixed-width">
+              メモ
+            </text>
+          </g>
+          <rect
+            x={merginWidth + remarksWidth}
+            y={merginHeight}
+            width={frontWidth + spineWidth}
+            height={skyHeight}
+            fill={bgcolor}
+            style={bgstyle}
+          />
+          <text
+            fill={bgcolor}
+            fontSize={spineWidth * 0.7}
+            ref={spineRef}
+            className="fixed-width"
+            fontFamily={getFontFamily(props.font)}
+            fontWeight={getFontWeight(props.font)}
+            visibility="hidden"
+          >
+            {props.labels.length > 0 ? props.labels[0].spine : ""}
+          </text>
+          <text
+            fill={bgcolor}
+            fontSize={spineWidth * 0.7}
+            ref={titleRef}
+            className="fixed-width"
+            fontFamily={getFontFamily(props.font)}
+            fontWeight={getFontWeight(props.font)}
+            visibility="hidden"
+          >
+            {props.labels.length > 0 ? props.labels[0].title : ""}
+          </text>
+          <g
+            transform={`translate(${
+              merginWidth + remarksWidth + spineWidth * 0.2
+            }, ${merginHeight + skyHeight}) rotate(90) scale(${scaleY},1)`}
+          >
+            <text
+              fill={bgcolor}
+              fontSize={spineWidth * 0.7}
+              className="fixed-width"
+              fontFamily={getFontFamily(props.font)}
+              fontWeight={getFontWeight(props.font)}
+            >
+              {props.labels.length > 0 ? props.labels[0].spine : ""}
+            </text>
+          </g>
+          <g
+            transform={`translate(${
+              merginWidth + remarksWidth + spineWidth + merginTitleLeft
+            }, ${merginHeight + titleHight}) scale(${scaleX},1)`}
+          >
+            <text
+              fill={props.color}
+              stroke={bgcolor}
+              stroke-width={4}
+              stroke-linejoin={"round"}
+              fontSize={titleHight * 0.7}
+              className="fixed-width"
+              fontFamily={getFontFamily(props.font)}
+              fontWeight={getFontWeight(props.font)}
+            >
+              {props.labels.length > 0 ? props.labels[0].title : ""}
+            </text>
+          </g>
+          {(props.labels.length > 0
+            ? props.labels[0].desc.split("\n")
+            : []
+          ).map((str, idx) => {
+            return (
+              <text
+                x={merginWidth + remarksWidth + spineWidth + merginTitleLeft}
+                y={merginHeight + titleHight * (1 + 0.32 * (1 + idx))}
+                fill={bgcolor}
+                fontSize={titleHight * 0.3}
+                className="fixed-width"
+                fontFamily={getFontFamily(props.font)}
+                fontWeight={getFontWeight(props.font)}
+              >
+                {str}
+              </text>
+            );
+          })}
         </svg>
       </Container>
     </>
@@ -645,6 +871,7 @@ function SettingEdit(props) {
 }
 
 function App() {
+  const [maker, setMaker] = useState(0);
   const [title, setTitle] = useState("");
   const [spine, setSpine] = useState("");
   const [desc, setDesc] = useState("");
@@ -698,21 +925,35 @@ function App() {
     setFontIndex(idx);
     setWeightIndex(0);
   };
-  const handleWeightChange = (idx) => {
-    if (fontAllowed[fontIndex].weight.length > 1) {
+  const handleWeightChange = (i, idx = -1) => {
+    idx = idx > -1 ? idx : fontIndex;
+    if (fontAllowed[idx].weight.length > 1) {
       setFont(
-        fontAllowed[fontIndex].label +
+        fontAllowed[idx].label +
           fontWeightJoinToken +
-          fontAllowed[fontIndex].weight[idx]
+          fontAllowed[idx].weight[i]
       );
     }
-    setWeightIndex(idx);
+    setWeightIndex(i);
   };
 
   return (
     <>
-      <h1>KATO Book Case Label Generator</h1>
       <Grid container spacing={1}>
+        <Grid item xs={8} />
+        <Grid item xs={4}>
+          <Button
+            variant="contained"
+            startIcon={<LoopIcon />}
+            size="large"
+            onClick={() => setMaker((maker + 1) % makers.length)}
+          >
+            {makers[(maker + 1) % makers.length].name}
+          </Button>
+        </Grid>
+        <Grid item xs={12}>
+          <h1>{makers[maker].name} Book Case Label Generator</h1>
+        </Grid>
         <Grid item xs={12} md={6}>
           <IndexList
             openModal={openModal}
@@ -728,12 +969,21 @@ function App() {
           />
         </Grid>
         <Grid item xs={12} md={5}>
-          <IndexImage
-            labels={labels}
-            color={color}
-            open={open || open2}
-            font={font}
-          />
+          {maker == 0 ? (
+            <IndexImageKato
+              labels={labels}
+              color={color}
+              open={open || open2}
+              font={font}
+            />
+          ) : (
+            <IndexImageTomix
+              labels={labels}
+              color={color}
+              open={open || open2}
+              font={font}
+            />
+          )}
         </Grid>
       </Grid>
       <IndexEdit
